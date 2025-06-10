@@ -124,21 +124,6 @@ async fn get_contributions(gh_username: &str, personal_access_token: &str) -> Co
 
     contribution_calendar.clone()
 }
-
-fn print_week_squares(weeks: &[Week]) {
-    for day in 0..7 {
-        for week in weeks.iter() {
-            if let Some(square) = week.contribution_days.get(day) {
-                let ansi_color = github_color_to_ansi(&square.color);
-                print_square(ansi_color);
-            } else {
-                print!("  ");
-            }
-        }
-        println!();
-    }
-}
-
 fn github_color_to_ansi(hex: &str) -> u8 {
     match hex {
         "#ebedf0" => 255, // white
@@ -182,7 +167,23 @@ fn get_streak(weeks: &[Week]) -> u32 {
     streak
 }
 
+fn print_week_squares(weeks: &[Week]) {
+    println!();
+    for day in 0..7 {
+        for week in weeks.iter() {
+            if let Some(square) = week.contribution_days.get(day) {
+                let ansi_color = github_color_to_ansi(&square.color);
+                print_square(ansi_color);
+            } else {
+                print!("  ");
+            }
+        }
+        println!();
+    }
+}
+
 fn print_contributions_and_streak(contribution_calendar: &ContributionCalendar) {
+    println!();
     println!(
         "Contributions for today: {}",
         get_contributions_for_today(&contribution_calendar.weeks)
