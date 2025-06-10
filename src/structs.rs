@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct ContributionDay {
@@ -41,4 +41,10 @@ pub struct Data {
 #[derive(Debug, Deserialize)]
 pub struct GraphQLResponse {
     pub data: Data,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Config {
+    pub gh_username: String,
+    pub personal_access_token: String,
 }

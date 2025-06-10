@@ -1,27 +1,26 @@
-use crate::structs::{ContributionCalendar, ContributionDay, GraphQLResponse, Week};
-use dotenv::dotenv;
+use crate::structs::{Config, ContributionCalendar, ContributionDay, GraphQLResponse, Week};
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue, USER_AGENT};
-use std::env;
+use std::{fs, io, path::Path};
 
 mod structs;
 
 #[tokio::main]
 async fn main() {
-    dotenv().ok();
-
-    if env::var("GITHUB_PERSONAL_ACCESS_TOKEN").is_err() {
-        panic!(
-            "GITHUB_PERSONAL_ACCESS_TOKEN is not set. Please set it in the .env file for this application to work."
+    let config_file_exists = check_config_file_exists();
+    if !config_file_exists {
+        println!(
+            "No config file found. Please enter your GitHub username and personal access token."
         );
     }
 
-    if env::var("GITHUB_USERNAME").is_err() {
-        panic!(
-            "GITHUB_USERNAME is not set. Please set it in the .env file for this application to work."
-        );
-    }
-    let gh_username = env::var("GITHUB_USERNAME").unwrap();
-    let personal_access_token = env::var("GITHUB_PERSONAL_ACCESS_TOKEN").unwrap();
+    let (gh_username, personal_access_token) = if config_file_exists {
+        read_config_file()
+    } else {
+        let (gh_username, personal_access_token) = prompt_user_for_config();
+        create_config_file(&gh_username, &personal_access_token);
+        println!("Config file created successfully.");
+        (gh_username, personal_access_token)
+    };
 
     let total_contributions = get_contributions(&gh_username, &personal_access_token).await;
     print_week_squares(&total_contributions.weeks);
@@ -40,6 +39,50 @@ async fn main() {
         "Current streak: {} days",
         get_streak(&total_contributions.weeks)
     );
+}
+
+fn check_config_file_exists() -> bool {
+    let config_file = Path::new("config.json");
+    config_file.exists()
+}
+
+fn read_config_file() -> (String, String) {
+    let config_file = Path::new("config.json");
+    let config_file_contents = fs::read_to_string(config_file).expect("Failed to read config file");
+    let config: Config =
+        serde_json::from_str(&config_file_contents).expect("Failed to parse config file");
+    (config.gh_username, config.personal_access_token)
+}
+
+fn prompt_user_for_config() -> (String, String) {
+    println!("Enter your GitHub username: ");
+    let mut gh_username = String::new();
+    io::stdin()
+        .read_line(&mut gh_username)
+        .expect("Failed to read line");
+    gh_username = gh_username.trim().to_string();
+
+    println!("Enter your personal access token: ");
+    let mut personal_access_token = String::new();
+    io::stdin()
+        .read_line(&mut personal_access_token)
+        .expect("Failed to read line");
+    personal_access_token = personal_access_token.trim().to_string();
+
+    (gh_username, personal_access_token)
+}
+
+fn create_config_file(gh_username: &str, personal_access_token: &str) {
+    let config = Config {
+        gh_username: gh_username.to_string(),
+        personal_access_token: personal_access_token.to_string(),
+    };
+    let config_file = Path::new("config.json");
+    fs::write(
+        config_file,
+        serde_json::to_string(&config).expect("Failed to write config file"),
+    )
+    .expect("Failed to write config file");
 }
 
 async fn get_contributions(gh_username: &str, personal_access_token: &str) -> ContributionCalendar {
