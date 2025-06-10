@@ -24,23 +24,9 @@ async fn main() {
         (gh_username, personal_access_token)
     };
 
-    let total_contributions = get_contributions(&gh_username, &personal_access_token).await;
-    print_week_squares(&total_contributions.weeks);
-    println!();
-    println!(
-        "Contributions for today: {}",
-        get_contributions_for_today(&total_contributions.weeks)
-    );
-    println!();
-    println!(
-        "Total contributions in the last year: {}",
-        &total_contributions.total_contributions
-    );
-    println!();
-    println!(
-        "Current streak: {} days",
-        get_streak(&total_contributions.weeks)
-    );
+    let contribution_calendar = get_contributions(&gh_username, &personal_access_token).await;
+    print_week_squares(&contribution_calendar.weeks);
+    print_contributions_and_streak(&contribution_calendar);
 }
 
 fn check_config_file_exists() -> bool {
@@ -194,4 +180,21 @@ fn get_streak(weeks: &[Week]) -> u32 {
         }
     }
     streak
+}
+
+fn print_contributions_and_streak(contribution_calendar: &ContributionCalendar) {
+    println!(
+        "Contributions for today: {}",
+        get_contributions_for_today(&contribution_calendar.weeks)
+    );
+    println!();
+    println!(
+        "Total contributions in the last year: {}",
+        &contribution_calendar.total_contributions
+    );
+    println!();
+    println!(
+        "Current streak: {} days",
+        get_streak(&contribution_calendar.weeks)
+    );
 }
