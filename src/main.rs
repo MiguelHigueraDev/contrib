@@ -4,6 +4,8 @@ use std::{fs, io, path::Path};
 
 mod structs;
 
+const FILE_PATH: &str = "config.json";
+
 #[tokio::main]
 async fn main() {
     let config_file_exists = check_config_file_exists();
@@ -42,12 +44,12 @@ async fn main() {
 }
 
 fn check_config_file_exists() -> bool {
-    let config_file = Path::new("config.json");
+    let config_file = Path::new(FILE_PATH);
     config_file.exists()
 }
 
 fn read_config_file() -> (String, String) {
-    let config_file = Path::new("config.json");
+    let config_file = Path::new(FILE_PATH);
     let config_file_contents = fs::read_to_string(config_file).expect("Failed to read config file");
     let config: Config =
         serde_json::from_str(&config_file_contents).expect("Failed to parse config file");
@@ -77,7 +79,7 @@ fn create_config_file(gh_username: &str, personal_access_token: &str) {
         gh_username: gh_username.to_string(),
         personal_access_token: personal_access_token.to_string(),
     };
-    let config_file = Path::new("config.json");
+    let config_file = Path::new(FILE_PATH);
     fs::write(
         config_file,
         serde_json::to_string(&config).expect("Failed to write config file"),
@@ -137,7 +139,7 @@ async fn get_contributions(gh_username: &str, personal_access_token: &str) -> Co
     contribution_calendar.clone()
 }
 
-fn print_week_squares(weeks: &Vec<Week>) {
+fn print_week_squares(weeks: &[Week]) {
     for day in 0..7 {
         for week in weeks.iter() {
             if let Some(square) = week.contribution_days.get(day) {
@@ -166,7 +168,7 @@ fn print_square(square_color: u8) {
     print!("\x1b[48;5;{}m  \x1b[0m", square_color);
 }
 
-fn get_contributions_for_today(weeks: &Vec<Week>) -> u32 {
+fn get_contributions_for_today(weeks: &[Week]) -> u32 {
     weeks
         .last()
         .unwrap()
@@ -176,7 +178,7 @@ fn get_contributions_for_today(weeks: &Vec<Week>) -> u32 {
         .contribution_count
 }
 
-fn get_streak(weeks: &Vec<Week>) -> u32 {
+fn get_streak(weeks: &[Week]) -> u32 {
     let mut streak = 0;
 
     let all_days: Vec<&ContributionDay> = weeks
