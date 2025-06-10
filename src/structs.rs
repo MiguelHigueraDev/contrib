@@ -2,7 +2,6 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct ContributionDay {
-    pub _date: String,
     #[serde(rename = "contributionCount")]
     pub contribution_count: u32,
     pub color: String,
