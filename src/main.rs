@@ -1,4 +1,4 @@
-use crate::structs::{ContributionCalendar, GraphQLResponse, Week};
+use crate::structs::{ContributionCalendar, ContributionDay, GraphQLResponse, Week};
 use dotenv::dotenv;
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue, USER_AGENT};
 use std::env;
@@ -25,13 +25,20 @@ async fn main() {
 
     let total_contributions = get_contributions(&gh_username, &personal_access_token).await;
     print_week_squares(&total_contributions.weeks);
+    println!();
     println!(
         "Contributions for today: {}",
         get_contributions_for_today(&total_contributions.weeks)
     );
+    println!();
     println!(
         "Total contributions in the last year: {}",
         &total_contributions.total_contributions
+    );
+    println!();
+    println!(
+        "Current streak: {} days",
+        get_streak(&total_contributions.weeks)
     );
 }
 
@@ -124,4 +131,22 @@ fn get_contributions_for_today(weeks: &Vec<Week>) -> u32 {
         .last()
         .unwrap()
         .contribution_count
+}
+
+fn get_streak(weeks: &Vec<Week>) -> u32 {
+    let mut streak = 0;
+
+    let all_days: Vec<&ContributionDay> = weeks
+        .iter()
+        .flat_map(|week| week.contribution_days.iter())
+        .collect();
+
+    for day in all_days.iter().rev() {
+        if day.contribution_count > 0 {
+            streak += 1;
+        } else {
+            break;
+        }
+    }
+    streak
 }
