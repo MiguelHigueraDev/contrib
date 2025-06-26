@@ -1,14 +1,19 @@
 use crate::structs::{Config, ContributionCalendar, ContributionDay, GraphQLResponse, Week};
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue, USER_AGENT};
-use std::{fs, io, path::Path};
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+};
 
 mod structs;
 
-const FILE_PATH: &str = "config.json";
+const CONFIG_DIR_NAME: &str = "contrib";
+const CONFIG_FILE_NAME: &str = "config.json";
 
 #[tokio::main]
 async fn main() {
-    let config_file_exists = check_config_file_exists();
+    let config_path = get_config_path();
+    let config_file_exists = check_config_file_exists(&config_path);
     if !config_file_exists {
         println!(
             "No config file found. Please enter your GitHub username and personal access token."
@@ -16,11 +21,14 @@ async fn main() {
     }
 
     let (gh_username, personal_access_token) = if config_file_exists {
-        read_config_file()
+        read_config_file(&config_path)
     } else {
         let (gh_username, personal_access_token) = prompt_user_for_config();
-        create_config_file(&gh_username, &personal_access_token);
-        println!("Config file created successfully.");
+        create_config_file(&config_path, &gh_username, &personal_access_token);
+        println!(
+            "Config file created successfully at: {}",
+            config_path.display()
+        );
         (gh_username, personal_access_token)
     };
 
@@ -29,14 +37,25 @@ async fn main() {
     print_contributions_and_streak(&contribution_calendar);
 }
 
-fn check_config_file_exists() -> bool {
-    let config_file = Path::new(FILE_PATH);
-    config_file.exists()
+fn get_config_path() -> PathBuf {
+    let config_dir = dirs::config_dir()
+        .expect("Could not determine config directory")
+        .join(CONFIG_DIR_NAME);
+
+    // Create the config directory if it doesn't exist
+    if !config_dir.exists() {
+        fs::create_dir_all(&config_dir).expect("Failed to create config directory");
+    }
+
+    config_dir.join(CONFIG_FILE_NAME)
 }
 
-fn read_config_file() -> (String, String) {
-    let config_file = Path::new(FILE_PATH);
-    let config_file_contents = fs::read_to_string(config_file).expect("Failed to read config file");
+fn check_config_file_exists(config_path: &Path) -> bool {
+    config_path.exists()
+}
+
+fn read_config_file(config_path: &Path) -> (String, String) {
+    let config_file_contents = fs::read_to_string(config_path).expect("Failed to read config file");
     let config: Config =
         serde_json::from_str(&config_file_contents).expect("Failed to parse config file");
     (config.gh_username, config.personal_access_token)
@@ -60,15 +79,14 @@ fn prompt_user_for_config() -> (String, String) {
     (gh_username, personal_access_token)
 }
 
-fn create_config_file(gh_username: &str, personal_access_token: &str) {
+fn create_config_file(config_path: &Path, gh_username: &str, personal_access_token: &str) {
     let config = Config {
         gh_username: gh_username.to_string(),
         personal_access_token: personal_access_token.to_string(),
     };
-    let config_file = Path::new(FILE_PATH);
     fs::write(
-        config_file,
-        serde_json::to_string(&config).expect("Failed to write config file"),
+        config_path,
+        serde_json::to_string(&config).expect("Failed to serialize config"),
     )
     .expect("Failed to write config file");
 }
